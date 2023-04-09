@@ -1,334 +1,328 @@
-package main
+package curlcolor
 
 import (
 	"errors"
 	"log"
-	"net/url"
 	"strings"
 )
 
-type Parameter map[string]*Param
+type CurlParameter map[string]*CurlParam
 
-func (p *Parameter) Get(key string) (*Param, bool) {
+func (p *CurlParameter) GetBool(key string) bool {
+	param, ok := p.Get(key)
+	if !ok {
+		return false
+	}
+	return param.boolValue
+}
+
+func (p *CurlParameter) GetString(key string) string {
+	param, ok := p.Get(key)
+	if !ok {
+		return ""
+	}
+	return param.stringValue
+}
+
+func (p *CurlParameter) Get(key string) (*CurlParam, bool) {
 	param, ok := (*p)[key]
 	return param, ok
 }
 
-func (p *Parameter) MustGet(key string) *Param {
-	return (*p)[key]
-}
-
-func (p *Parameter) Protocol() string {
-	param, _ := p.Get("url")
-	u, err := url.Parse(param.StringVal())
-	if err != nil {
-		return ""
-	}
-	return u.Scheme
-}
-
-type ParamType int
+type ArgType int
 
 const (
-	argNone ParamType = iota
-	argBool
-	argString
-	argFilename
+	ArgNone ArgType = iota
+	ArgBool
+	ArgString
+	ArgFilename
 )
 
-type Param struct {
-	letter    string
-	lname     string
-	desc      ParamType
-	valBool   bool
-	valString string
+type CurlParam struct {
+	letter      string
+	lname       string
+	desc        ArgType
+	boolValue   bool
+	stringValue string
 }
 
-func (p *Param) SetVal(argv []string) ([]string, error) {
+func (p *CurlParam) SetVal(argv []string) ([]string, error) {
 	switch p.desc {
-	case argBool, argNone:
-		p.valBool = true
-	case argString, argFilename:
+	case ArgBool, ArgNone:
+		p.boolValue = true
+	case ArgString, ArgFilename:
 		if len(argv) == 0 {
 			return argv, errors.New("missing argument")
 		}
-		p.valString = argv[0]
+		p.stringValue = argv[0]
 		argv = argv[1:]
 	}
 	return argv, nil
 }
 
-func (p *Param) StringVal() string {
-	return p.valString
-}
-
-func (p *Param) BoolVal() bool {
-	return p.valBool
-}
-
 var (
-	longNameParameter = &Parameter{
-		"url":                        {"*@", "url", argString, false, ""},
-		"dns-ipv4-addr":              {"*4", "dns-ipv4-addr", argString, false, ""},
-		"dns-ipv6-addr":              {"*6", "dns-ipv6-addr", argString, false, ""},
-		"random-file":                {"*a", "random-file", argFilename, false, ""},
-		"egd-file":                   {"*b", "egd-file", argString, false, ""},
-		"oauth2-bearer":              {"*B", "oauth2-bearer", argString, false, ""},
-		"connect-timeout":            {"*c", "connect-timeout", argString, false, ""},
-		"doh-url":                    {"*C", "doh-url", argString, false, ""},
-		"ciphers":                    {"*d", "ciphers", argString, false, ""},
-		"dns-interface":              {"*D", "dns-interface", argString, false, ""},
-		"disable-epsv":               {"*e", "disable-epsv", argBool, false, ""},
-		"disallow-username-in-url":   {"*f", "disallow-username-in-url", argBool, false, ""},
-		"epsv":                       {"*E", "epsv", argBool, false, ""},
-		"dns-servers":                {"*F", "dns-servers", argString, false, ""},
-		"trace":                      {"*g", "trace", argFilename, false, ""},
-		"npn":                        {"*G", "npn", argBool, false, ""},
-		"trace-ascii":                {"*h", "trace-ascii", argFilename, false, ""},
-		"alpn":                       {"*H", "alpn", argBool, false, ""},
-		"limit-rate":                 {"*i", "limit-rate", argString, false, ""},
-		"rate":                       {"*I", "rate", argString, false, ""},
-		"compressed":                 {"*j", "compressed", argBool, false, ""},
-		"tr-encoding":                {"*J", "tr-encoding", argBool, false, ""},
-		"digest":                     {"*k", "digest", argBool, false, ""},
-		"negotiate":                  {"*l", "negotiate", argBool, false, ""},
-		"ntlm":                       {"*m", "ntlm", argBool, false, ""},
-		"ntlm-wb":                    {"*M", "ntlm-wb", argBool, false, ""},
-		"basic":                      {"*n", "basic", argBool, false, ""},
-		"anyauth":                    {"*o", "anyauth", argBool, false, ""},
-		"wdebug":                     {"*p", "wdebug", argBool, false, ""},
-		"ftp-create-dirs":            {"*q", "ftp-create-dirs", argBool, false, ""},
-		"create-dirs":                {"*r", "create-dirs", argBool, false, ""},
-		"create-file-mode":           {"*R", "create-file-mode", argString, false, ""},
-		"max-redirs":                 {"*s", "max-redirs", argString, false, ""},
-		"proxy-ntlm":                 {"*desc", "proxy-ntlm", argBool, false, ""},
-		"crlf":                       {"*u", "crlf", argBool, false, ""},
-		"stderr":                     {"*v", "stderr", argFilename, false, ""},
-		"aws-sigv4":                  {"*V", "aws-sigv4", argString, false, ""},
-		"interface":                  {"*w", "interface", argString, false, ""},
-		"krb":                        {"*x", "krb", argString, false, ""},
-		"krb4":                       {"*x", "krb4", argString, false, ""},
-		"haproxy-protocol":           {"*X", "haproxy-protocol", argBool, false, ""},
-		"max-filesize":               {"*y", "max-filesize", argString, false, ""},
-		"disable-eprt":               {"*z", "disable-eprt", argBool, false, ""},
-		"eprt":                       {"*Z", "eprt", argBool, false, ""},
-		"xattr":                      {"*~", "xattr", argBool, false, ""},
-		"ftp-ssl":                    {"$a", "ftp-ssl", argBool, false, ""},
-		"ssl":                        {"$a", "ssl", argBool, false, ""},
-		"ftp-pasv":                   {"$b", "ftp-pasv", argBool, false, ""},
-		"socks5":                     {"$c", "socks5", argString, false, ""},
-		"tcp-nodelay":                {"$d", "tcp-nodelay", argBool, false, ""},
-		"proxy-digest":               {"$e", "proxy-digest", argBool, false, ""},
-		"proxy-basic":                {"$f", "proxy-basic", argBool, false, ""},
-		"retry":                      {"$g", "retry", argString, false, ""},
-		"retry-connrefused":          {"$V", "retry-connrefused", argBool, false, ""},
-		"retry-delay":                {"$h", "retry-delay", argString, false, ""},
-		"retry-max-time":             {"$i", "retry-max-time", argString, false, ""},
-		"proxy-negotiate":            {"$k", "proxy-negotiate", argBool, false, ""},
-		"form-escape":                {"$l", "form-escape", argBool, false, ""},
-		"ftp-account":                {"$m", "ftp-account", argString, false, ""},
-		"proxy-anyauth":              {"$n", "proxy-anyauth", argBool, false, ""},
-		"trace-time":                 {"$o", "trace-time", argBool, false, ""},
-		"ignore-content-length":      {"$p", "ignore-content-length", argBool, false, ""},
-		"ftp-skip-pasv-ip":           {"$q", "ftp-skip-pasv-ip", argBool, false, ""},
-		"ftp-method":                 {"$r", "ftp-method", argString, false, ""},
-		"local-port":                 {"$s", "local-port", argString, false, ""},
-		"socks4":                     {"$desc", "socks4", argString, false, ""},
-		"socks4a":                    {"$T", "socks4a", argString, false, ""},
-		"ftp-alternative-to-user":    {"$u", "ftp-alternative-to-user", argString, false, ""},
-		"ftp-ssl-reqd":               {"$v", "ftp-ssl-reqd", argBool, false, ""},
-		"ssl-reqd":                   {"$v", "ssl-reqd", argBool, false, ""},
-		"sessionid":                  {"$w", "sessionid", argBool, false, ""},
-		"ftp-ssl-control":            {"$x", "ftp-ssl-control", argBool, false, ""},
-		"ftp-ssl-ccc":                {"$y", "ftp-ssl-ccc", argBool, false, ""},
-		"ftp-ssl-ccc-mode":           {"$j", "ftp-ssl-ccc-mode", argString, false, ""},
-		"libcurl":                    {"$z", "libcurl", argString, false, ""},
-		"raw":                        {"$#", "raw", argBool, false, ""},
-		"post301":                    {"$0", "post301", argBool, false, ""},
-		"keepalive":                  {"$1", "keepalive", argBool, false, ""},
-		"socks5-hostname":            {"$2", "socks5-hostname", argString, false, ""},
-		"keepalive-time":             {"$3", "keepalive-time", argString, false, ""},
-		"post302":                    {"$4", "post302", argBool, false, ""},
-		"noproxy":                    {"$5", "noproxy", argString, false, ""},
-		"socks5-gssapi-nec":          {"$7", "socks5-gssapi-nec", argBool, false, ""},
-		"proxy1.0":                   {"$8", "proxy1.0", argString, false, ""},
-		"tftp-blksize":               {"$9", "tftp-blksize", argString, false, ""},
-		"mail-from":                  {"$A", "mail-from", argString, false, ""},
-		"mail-rcpt":                  {"$B", "mail-rcpt", argString, false, ""},
-		"ftp-pret":                   {"$C", "ftp-pret", argBool, false, ""},
-		"proto":                      {"$D", "proto", argString, false, ""},
-		"proto-redir":                {"$E", "proto-redir", argString, false, ""},
-		"resolve":                    {"$F", "resolve", argString, false, ""},
-		"delegation":                 {"$G", "delegation", argString, false, ""},
-		"mail-auth":                  {"$H", "mail-auth", argString, false, ""},
-		"post303":                    {"$I", "post303", argBool, false, ""},
-		"metalink":                   {"$J", "metalink", argBool, false, ""},
-		"sasl-authzid":               {"$6", "sasl-authzid", argString, false, ""},
-		"sasl-ir":                    {"$K", "sasl-ir", argBool, false, ""},
-		"test-event":                 {"$L", "test-event", argBool, false, ""},
-		"unix-socket":                {"$M", "unix-socket", argFilename, false, ""},
-		"path-as-is":                 {"$N", "path-as-is", argBool, false, ""},
-		"socks5-gssapi-service":      {"$O", "socks5-gssapi-service", argString, false, ""},
-		"proxy-service-name":         {"$O", "proxy-service-name", argString, false, ""},
-		"service-name":               {"$P", "service-name", argString, false, ""},
-		"proto-default":              {"$Q", "proto-default", argString, false, ""},
-		"expect100-timeout":          {"$R", "expect100-timeout", argString, false, ""},
-		"tftp-no-options":            {"$S", "tftp-no-options", argBool, false, ""},
-		"connect-to":                 {"$U", "connect-to", argString, false, ""},
-		"abstract-unix-socket":       {"$W", "abstract-unix-socket", argFilename, false, ""},
-		"tls-max":                    {"$X", "tls-max", argString, false, ""},
-		"suppress-connect-headers":   {"$Y", "suppress-connect-headers", argBool, false, ""},
-		"compressed-ssh":             {"$Z", "compressed-ssh", argBool, false, ""},
-		"happy-eyeballs-timeout-ms":  {"$~", "happy-eyeballs-timeout-ms", argString, false, ""},
-		"retry-all-errors":           {"$!", "retry-all-errors", argBool, false, ""},
-		"http1.0":                    {"0", "http1.0", argNone, false, ""},
-		"http1.1":                    {"01", "http1.1", argNone, false, ""},
-		"http2":                      {"02", "http2", argNone, false, ""},
-		"http2-prior-knowledge":      {"03", "http2-prior-knowledge", argNone, false, ""},
-		"http3":                      {"04", "http3", argNone, false, ""},
-		"http3-only":                 {"05", "http3-only", argNone, false, ""},
-		"http0.9":                    {"09", "http0.9", argBool, false, ""},
-		"tlsv1":                      {"1", "tlsv1", argNone, false, ""},
-		"tlsv1.0":                    {"10", "tlsv1.0", argNone, false, ""},
-		"tlsv1.1":                    {"11", "tlsv1.1", argNone, false, ""},
-		"tlsv1.2":                    {"12", "tlsv1.2", argNone, false, ""},
-		"tlsv1.3":                    {"13", "tlsv1.3", argNone, false, ""},
-		"tls13-ciphers":              {"1A", "tls13-ciphers", argString, false, ""},
-		"proxy-tls13-ciphers":        {"1B", "proxy-tls13-ciphers", argString, false, ""},
-		"sslv2":                      {"2", "sslv2", argNone, false, ""},
-		"sslv3":                      {"3", "sslv3", argNone, false, ""},
-		"ipv4":                       {"4", "ipv4", argNone, false, ""},
-		"ipv6":                       {"6", "ipv6", argNone, false, ""},
-		"append":                     {"a", "append", argBool, false, ""},
-		"user-agent":                 {"A", "user-agent", argString, false, ""},
-		"cookie":                     {"b", "cookie", argString, false, ""},
-		"alt-svc":                    {"ba", "alt-svc", argString, false, ""},
-		"hsts":                       {"bb", "hsts", argString, false, ""},
-		"use-ascii":                  {"B", "use-ascii", argBool, false, ""},
-		"cookie-jar":                 {"c", "cookie-jar", argString, false, ""},
-		"continue-at":                {"C", "continue-at", argString, false, ""},
-		"data":                       {"d", "data", argString, false, ""},
-		"data-raw":                   {"dr", "data-raw", argString, false, ""},
-		"data-ascii":                 {"da", "data-ascii", argString, false, ""},
-		"data-binary":                {"db", "data-binary", argString, false, ""},
-		"data-urlencode":             {"de", "data-urlencode", argString, false, ""},
-		"json":                       {"df", "json", argString, false, ""},
-		"url-query":                  {"dg", "url-query", argString, false, ""},
-		"dump-header":                {"D", "dump-header", argFilename, false, ""},
-		"referer":                    {"e", "referer", argString, false, ""},
-		"cert":                       {"E", "cert", argFilename, false, ""},
-		"cacert":                     {"Ea", "cacert", argFilename, false, ""},
-		"cert-type":                  {"Eb", "cert-type", argString, false, ""},
-		"key":                        {"Ec", "key", argFilename, false, ""},
-		"key-type":                   {"Ed", "key-type", argString, false, ""},
-		"pass":                       {"Ee", "pass", argString, false, ""},
-		"engine":                     {"Ef", "engine", argString, false, ""},
-		"capath":                     {"Eg", "capath", argFilename, false, ""},
-		"pubkey":                     {"Eh", "pubkey", argString, false, ""},
-		"hostpubmd5":                 {"Ei", "hostpubmd5", argString, false, ""},
-		"hostpubsha256":              {"EF", "hostpubsha256", argString, false, ""},
-		"crlfile":                    {"Ej", "crlfile", argFilename, false, ""},
-		"tlsuser":                    {"Ek", "tlsuser", argString, false, ""},
-		"tlspassword":                {"El", "tlspassword", argString, false, ""},
-		"tlsauthtype":                {"Em", "tlsauthtype", argString, false, ""},
-		"ssl-allow-beast":            {"En", "ssl-allow-beast", argBool, false, ""},
-		"ssl-auto-client-cert":       {"Eo", "ssl-auto-client-cert", argBool, false, ""},
-		"proxy-ssl-auto-client-cert": {"EO", "proxy-ssl-auto-client-cert", argBool, false, ""},
-		"pinnedpubkey":               {"Ep", "pinnedpubkey", argString, false, ""},
-		"proxy-pinnedpubkey":         {"EP", "proxy-pinnedpubkey", argString, false, ""},
-		"cert-status":                {"Eq", "cert-status", argBool, false, ""},
-		"doh-cert-status":            {"EQ", "doh-cert-status", argBool, false, ""},
-		"false-start":                {"Er", "false-start", argBool, false, ""},
-		"ssl-no-revoke":              {"Es", "ssl-no-revoke", argBool, false, ""},
-		"ssl-revoke-best-effort":     {"ES", "ssl-revoke-best-effort", argBool, false, ""},
-		"tcp-fastopen":               {"Et", "tcp-fastopen", argBool, false, ""},
-		"proxy-tlsuser":              {"Eu", "proxy-tlsuser", argString, false, ""},
-		"proxy-tlspassword":          {"Ev", "proxy-tlspassword", argString, false, ""},
-		"proxy-tlsauthtype":          {"Ew", "proxy-tlsauthtype", argString, false, ""},
-		"proxy-cert":                 {"Ex", "proxy-cert", argFilename, false, ""},
-		"proxy-cert-type":            {"Ey", "proxy-cert-type", argString, false, ""},
-		"proxy-key":                  {"Ez", "proxy-key", argFilename, false, ""},
-		"proxy-key-type":             {"E0", "proxy-key-type", argString, false, ""},
-		"proxy-pass":                 {"E1", "proxy-pass", argString, false, ""},
-		"proxy-ciphers":              {"E2", "proxy-ciphers", argString, false, ""},
-		"proxy-crlfile":              {"E3", "proxy-crlfile", argFilename, false, ""},
-		"proxy-ssl-allow-beast":      {"E4", "proxy-ssl-allow-beast", argBool, false, ""},
-		"login-options":              {"E5", "login-options", argString, false, ""},
-		"proxy-cacert":               {"E6", "proxy-cacert", argFilename, false, ""},
-		"proxy-capath":               {"E7", "proxy-capath", argFilename, false, ""},
-		"proxy-insecure":             {"E8", "proxy-insecure", argBool, false, ""},
-		"proxy-tlsv1":                {"E9", "proxy-tlsv1", argNone, false, ""},
-		"socks5-basic":               {"EA", "socks5-basic", argBool, false, ""},
-		"socks5-gssapi":              {"EB", "socks5-gssapi", argBool, false, ""},
-		"etag-save":                  {"EC", "etag-save", argFilename, false, ""},
-		"etag-compare":               {"ED", "etag-compare", argFilename, false, ""},
-		"curves":                     {"EE", "curves", argString, false, ""},
-		"fail":                       {"f", "fail", argBool, false, ""},
-		"fail-early":                 {"fa", "fail-early", argBool, false, ""},
-		"styled-output":              {"fb", "styled-output", argBool, false, ""},
-		"mail-rcpt-allowfails":       {"fc", "mail-rcpt-allowfails", argBool, false, ""},
-		"fail-with-body":             {"fd", "fail-with-body", argBool, false, ""},
-		"remove-on-error":            {"fe", "remove-on-error", argBool, false, ""},
-		"form":                       {"F", "form", argString, false, ""},
-		"form-string":                {"Fs", "form-string", argString, false, ""},
-		"globoff":                    {"g", "globoff", argBool, false, ""},
-		"get":                        {"G", "get", argBool, false, ""},
-		"request-target":             {"Ga", "request-target", argString, false, ""},
-		"help":                       {"h", "help", argBool, false, ""},
-		"header":                     {"H", "header", argString, false, ""},
-		"proxy-header":               {"Hp", "proxy-header", argString, false, ""},
-		"include":                    {"i", "include", argBool, false, ""},
-		"head":                       {"I", "head", argBool, false, ""},
-		"junk-session-cookies":       {"j", "junk-session-cookies", argBool, false, ""},
-		"remote-header-name":         {"J", "remote-header-name", argBool, false, ""},
-		"insecure":                   {"k", "insecure", argBool, false, ""},
-		"doh-insecure":               {"kd", "doh-insecure", argBool, false, ""},
-		"config":                     {"K", "config", argFilename, false, ""},
-		"list-only":                  {"l", "list-only", argBool, false, ""},
-		"location":                   {"L", "location", argBool, false, ""},
-		"location-trusted":           {"Lt", "location-trusted", argBool, false, ""},
-		"max-time":                   {"m", "max-time", argString, false, ""},
-		"manual":                     {"M", "manual", argBool, false, ""},
-		"netrc":                      {"n", "netrc", argBool, false, ""},
-		"netrc-optional":             {"no", "netrc-optional", argBool, false, ""},
-		"netrc-file":                 {"ne", "netrc-file", argFilename, false, ""},
-		"buffer":                     {"N", "buffer", argBool, false, ""},
-		"output":                     {"o", "output", argFilename, false, ""},
-		"remote-name":                {"O", "remote-name", argBool, false, ""},
-		"remote-name-all":            {"Oa", "remote-name-all", argBool, false, ""},
-		"output-dir":                 {"Ob", "output-dir", argString, false, ""},
-		"clobber":                    {"Oc", "clobber", argBool, false, ""},
-		"proxytunnel":                {"p", "proxytunnel", argBool, false, ""},
-		"ftp-port":                   {"P", "ftp-port", argString, false, ""},
-		"disable":                    {"q", "disable", argBool, false, ""},
-		"quote":                      {"Q", "quote", argString, false, ""},
-		"range":                      {"r", "range", argString, false, ""},
-		"remote-time":                {"R", "remote-time", argBool, false, ""},
-		"silent":                     {"s", "silent", argBool, false, ""},
-		"show-error":                 {"S", "show-error", argBool, false, ""},
-		"telnet-option":              {"desc", "telnet-option", argString, false, ""},
-		"upload-file":                {"T", "upload-file", argFilename, false, ""},
-		"user":                       {"u", "user", argString, false, ""},
-		"proxy-user":                 {"U", "proxy-user", argString, false, ""},
-		"verbose":                    {"v", "verbose", argBool, false, ""},
-		"version":                    {"V", "version", argBool, false, ""},
-		"write-out":                  {"w", "write-out", argString, false, ""},
-		"proxy":                      {"x", "proxy", argString, false, ""},
-		"preproxy":                   {"xa", "preproxy", argString, false, ""},
-		"request":                    {"X", "request", argString, false, ""},
-		"speed-limit":                {"Y", "speed-limit", argString, false, ""},
-		"speed-time":                 {"y", "speed-time", argString, false, ""},
-		"time-cond":                  {"z", "time-cond", argString, false, ""},
-		"parallel":                   {"Z", "parallel", argBool, false, ""},
-		"parallel-max":               {"Zb", "parallel-max", argString, false, ""},
-		"parallel-immediate":         {"Zc", "parallel-immediate", argBool, false, ""},
-		"progress-bar":               {"#", "progress-bar", argBool, false, ""},
-		"progress-meter":             {"#m", "progress-meter", argBool, false, ""},
-		"next":                       {":", "next", argNone, false, ""},
+	longNameParameter = &CurlParameter{
+		"url":                        {"*@", "url", ArgString, false, ""},
+		"dns-ipv4-addr":              {"*4", "dns-ipv4-addr", ArgString, false, ""},
+		"dns-ipv6-addr":              {"*6", "dns-ipv6-addr", ArgString, false, ""},
+		"random-file":                {"*a", "random-file", ArgFilename, false, ""},
+		"egd-file":                   {"*b", "egd-file", ArgString, false, ""},
+		"oauth2-bearer":              {"*B", "oauth2-bearer", ArgString, false, ""},
+		"connect-timeout":            {"*c", "connect-timeout", ArgString, false, ""},
+		"doh-url":                    {"*C", "doh-url", ArgString, false, ""},
+		"ciphers":                    {"*d", "ciphers", ArgString, false, ""},
+		"dns-interface":              {"*D", "dns-interface", ArgString, false, ""},
+		"disable-epsv":               {"*e", "disable-epsv", ArgBool, false, ""},
+		"disallow-username-in-url":   {"*f", "disallow-username-in-url", ArgBool, false, ""},
+		"epsv":                       {"*E", "epsv", ArgBool, false, ""},
+		"dns-servers":                {"*F", "dns-servers", ArgString, false, ""},
+		"trace":                      {"*g", "trace", ArgFilename, false, ""},
+		"npn":                        {"*G", "npn", ArgBool, false, ""},
+		"trace-ascii":                {"*h", "trace-ascii", ArgFilename, false, ""},
+		"alpn":                       {"*H", "alpn", ArgBool, false, ""},
+		"limit-rate":                 {"*i", "limit-rate", ArgString, false, ""},
+		"rate":                       {"*I", "rate", ArgString, false, ""},
+		"compressed":                 {"*j", "compressed", ArgBool, false, ""},
+		"tr-encoding":                {"*J", "tr-encoding", ArgBool, false, ""},
+		"digest":                     {"*k", "digest", ArgBool, false, ""},
+		"negotiate":                  {"*l", "negotiate", ArgBool, false, ""},
+		"ntlm":                       {"*m", "ntlm", ArgBool, false, ""},
+		"ntlm-wb":                    {"*M", "ntlm-wb", ArgBool, false, ""},
+		"basic":                      {"*n", "basic", ArgBool, false, ""},
+		"anyauth":                    {"*o", "anyauth", ArgBool, false, ""},
+		"wdebug":                     {"*p", "wdebug", ArgBool, false, ""},
+		"ftp-create-dirs":            {"*q", "ftp-create-dirs", ArgBool, false, ""},
+		"create-dirs":                {"*r", "create-dirs", ArgBool, false, ""},
+		"create-file-mode":           {"*R", "create-file-mode", ArgString, false, ""},
+		"max-redirs":                 {"*s", "max-redirs", ArgString, false, ""},
+		"proxy-ntlm":                 {"*desc", "proxy-ntlm", ArgBool, false, ""},
+		"crlf":                       {"*u", "crlf", ArgBool, false, ""},
+		"stderr":                     {"*v", "stderr", ArgFilename, false, ""},
+		"aws-sigv4":                  {"*V", "aws-sigv4", ArgString, false, ""},
+		"interface":                  {"*w", "interface", ArgString, false, ""},
+		"krb":                        {"*x", "krb", ArgString, false, ""},
+		"krb4":                       {"*x", "krb4", ArgString, false, ""},
+		"haproxy-protocol":           {"*X", "haproxy-protocol", ArgBool, false, ""},
+		"max-filesize":               {"*y", "max-filesize", ArgString, false, ""},
+		"disable-eprt":               {"*z", "disable-eprt", ArgBool, false, ""},
+		"eprt":                       {"*Z", "eprt", ArgBool, false, ""},
+		"xattr":                      {"*~", "xattr", ArgBool, false, ""},
+		"ftp-ssl":                    {"$a", "ftp-ssl", ArgBool, false, ""},
+		"ssl":                        {"$a", "ssl", ArgBool, false, ""},
+		"ftp-pasv":                   {"$b", "ftp-pasv", ArgBool, false, ""},
+		"socks5":                     {"$c", "socks5", ArgString, false, ""},
+		"tcp-nodelay":                {"$d", "tcp-nodelay", ArgBool, false, ""},
+		"proxy-digest":               {"$e", "proxy-digest", ArgBool, false, ""},
+		"proxy-basic":                {"$f", "proxy-basic", ArgBool, false, ""},
+		"retry":                      {"$g", "retry", ArgString, false, ""},
+		"retry-connrefused":          {"$V", "retry-connrefused", ArgBool, false, ""},
+		"retry-delay":                {"$h", "retry-delay", ArgString, false, ""},
+		"retry-max-time":             {"$i", "retry-max-time", ArgString, false, ""},
+		"proxy-negotiate":            {"$k", "proxy-negotiate", ArgBool, false, ""},
+		"form-escape":                {"$l", "form-escape", ArgBool, false, ""},
+		"ftp-account":                {"$m", "ftp-account", ArgString, false, ""},
+		"proxy-anyauth":              {"$n", "proxy-anyauth", ArgBool, false, ""},
+		"trace-time":                 {"$o", "trace-time", ArgBool, false, ""},
+		"ignore-content-length":      {"$p", "ignore-content-length", ArgBool, false, ""},
+		"ftp-skip-pasv-ip":           {"$q", "ftp-skip-pasv-ip", ArgBool, false, ""},
+		"ftp-method":                 {"$r", "ftp-method", ArgString, false, ""},
+		"local-port":                 {"$s", "local-port", ArgString, false, ""},
+		"socks4":                     {"$desc", "socks4", ArgString, false, ""},
+		"socks4a":                    {"$T", "socks4a", ArgString, false, ""},
+		"ftp-alternative-to-user":    {"$u", "ftp-alternative-to-user", ArgString, false, ""},
+		"ftp-ssl-reqd":               {"$v", "ftp-ssl-reqd", ArgBool, false, ""},
+		"ssl-reqd":                   {"$v", "ssl-reqd", ArgBool, false, ""},
+		"sessionid":                  {"$w", "sessionid", ArgBool, false, ""},
+		"ftp-ssl-control":            {"$x", "ftp-ssl-control", ArgBool, false, ""},
+		"ftp-ssl-ccc":                {"$y", "ftp-ssl-ccc", ArgBool, false, ""},
+		"ftp-ssl-ccc-mode":           {"$j", "ftp-ssl-ccc-mode", ArgString, false, ""},
+		"libcurl":                    {"$z", "libcurl", ArgString, false, ""},
+		"raw":                        {"$#", "raw", ArgBool, false, ""},
+		"post301":                    {"$0", "post301", ArgBool, false, ""},
+		"keepalive":                  {"$1", "keepalive", ArgBool, false, ""},
+		"socks5-hostname":            {"$2", "socks5-hostname", ArgString, false, ""},
+		"keepalive-time":             {"$3", "keepalive-time", ArgString, false, ""},
+		"post302":                    {"$4", "post302", ArgBool, false, ""},
+		"noproxy":                    {"$5", "noproxy", ArgString, false, ""},
+		"socks5-gssapi-nec":          {"$7", "socks5-gssapi-nec", ArgBool, false, ""},
+		"proxy1.0":                   {"$8", "proxy1.0", ArgString, false, ""},
+		"tftp-blksize":               {"$9", "tftp-blksize", ArgString, false, ""},
+		"mail-from":                  {"$A", "mail-from", ArgString, false, ""},
+		"mail-rcpt":                  {"$B", "mail-rcpt", ArgString, false, ""},
+		"ftp-pret":                   {"$C", "ftp-pret", ArgBool, false, ""},
+		"proto":                      {"$D", "proto", ArgString, false, ""},
+		"proto-redir":                {"$E", "proto-redir", ArgString, false, ""},
+		"resolve":                    {"$F", "resolve", ArgString, false, ""},
+		"delegation":                 {"$G", "delegation", ArgString, false, ""},
+		"mail-auth":                  {"$H", "mail-auth", ArgString, false, ""},
+		"post303":                    {"$I", "post303", ArgBool, false, ""},
+		"metalink":                   {"$J", "metalink", ArgBool, false, ""},
+		"sasl-authzid":               {"$6", "sasl-authzid", ArgString, false, ""},
+		"sasl-ir":                    {"$K", "sasl-ir", ArgBool, false, ""},
+		"test-event":                 {"$L", "test-event", ArgBool, false, ""},
+		"unix-socket":                {"$M", "unix-socket", ArgFilename, false, ""},
+		"path-as-is":                 {"$N", "path-as-is", ArgBool, false, ""},
+		"socks5-gssapi-service":      {"$O", "socks5-gssapi-service", ArgString, false, ""},
+		"proxy-service-name":         {"$O", "proxy-service-name", ArgString, false, ""},
+		"service-name":               {"$P", "service-name", ArgString, false, ""},
+		"proto-default":              {"$Q", "proto-default", ArgString, false, ""},
+		"expect100-timeout":          {"$R", "expect100-timeout", ArgString, false, ""},
+		"tftp-no-options":            {"$S", "tftp-no-options", ArgBool, false, ""},
+		"connect-to":                 {"$U", "connect-to", ArgString, false, ""},
+		"abstract-unix-socket":       {"$W", "abstract-unix-socket", ArgFilename, false, ""},
+		"tls-max":                    {"$X", "tls-max", ArgString, false, ""},
+		"suppress-connect-headers":   {"$Y", "suppress-connect-headers", ArgBool, false, ""},
+		"compressed-ssh":             {"$Z", "compressed-ssh", ArgBool, false, ""},
+		"happy-eyeballs-timeout-ms":  {"$~", "happy-eyeballs-timeout-ms", ArgString, false, ""},
+		"retry-all-errors":           {"$!", "retry-all-errors", ArgBool, false, ""},
+		"http1.0":                    {"0", "http1.0", ArgNone, false, ""},
+		"http1.1":                    {"01", "http1.1", ArgNone, false, ""},
+		"http2":                      {"02", "http2", ArgNone, false, ""},
+		"http2-prior-knowledge":      {"03", "http2-prior-knowledge", ArgNone, false, ""},
+		"http3":                      {"04", "http3", ArgNone, false, ""},
+		"http3-only":                 {"05", "http3-only", ArgNone, false, ""},
+		"http0.9":                    {"09", "http0.9", ArgBool, false, ""},
+		"tlsv1":                      {"1", "tlsv1", ArgNone, false, ""},
+		"tlsv1.0":                    {"10", "tlsv1.0", ArgNone, false, ""},
+		"tlsv1.1":                    {"11", "tlsv1.1", ArgNone, false, ""},
+		"tlsv1.2":                    {"12", "tlsv1.2", ArgNone, false, ""},
+		"tlsv1.3":                    {"13", "tlsv1.3", ArgNone, false, ""},
+		"tls13-ciphers":              {"1A", "tls13-ciphers", ArgString, false, ""},
+		"proxy-tls13-ciphers":        {"1B", "proxy-tls13-ciphers", ArgString, false, ""},
+		"sslv2":                      {"2", "sslv2", ArgNone, false, ""},
+		"sslv3":                      {"3", "sslv3", ArgNone, false, ""},
+		"ipv4":                       {"4", "ipv4", ArgNone, false, ""},
+		"ipv6":                       {"6", "ipv6", ArgNone, false, ""},
+		"append":                     {"a", "append", ArgBool, false, ""},
+		"user-agent":                 {"A", "user-agent", ArgString, false, ""},
+		"cookie":                     {"b", "cookie", ArgString, false, ""},
+		"alt-svc":                    {"ba", "alt-svc", ArgString, false, ""},
+		"hsts":                       {"bb", "hsts", ArgString, false, ""},
+		"use-ascii":                  {"B", "use-ascii", ArgBool, false, ""},
+		"cookie-jar":                 {"c", "cookie-jar", ArgString, false, ""},
+		"continue-at":                {"C", "continue-at", ArgString, false, ""},
+		"data":                       {"d", "data", ArgString, false, ""},
+		"data-raw":                   {"dr", "data-raw", ArgString, false, ""},
+		"data-ascii":                 {"da", "data-ascii", ArgString, false, ""},
+		"data-binary":                {"db", "data-binary", ArgString, false, ""},
+		"data-urlencode":             {"de", "data-urlencode", ArgString, false, ""},
+		"json":                       {"df", "json", ArgString, false, ""},
+		"url-query":                  {"dg", "url-query", ArgString, false, ""},
+		"dump-header":                {"D", "dump-header", ArgFilename, false, ""},
+		"referer":                    {"e", "referer", ArgString, false, ""},
+		"cert":                       {"E", "cert", ArgFilename, false, ""},
+		"cacert":                     {"Ea", "cacert", ArgFilename, false, ""},
+		"cert-type":                  {"Eb", "cert-type", ArgString, false, ""},
+		"key":                        {"Ec", "key", ArgFilename, false, ""},
+		"key-type":                   {"Ed", "key-type", ArgString, false, ""},
+		"pass":                       {"Ee", "pass", ArgString, false, ""},
+		"engine":                     {"Ef", "engine", ArgString, false, ""},
+		"capath":                     {"Eg", "capath", ArgFilename, false, ""},
+		"pubkey":                     {"Eh", "pubkey", ArgString, false, ""},
+		"hostpubmd5":                 {"Ei", "hostpubmd5", ArgString, false, ""},
+		"hostpubsha256":              {"EF", "hostpubsha256", ArgString, false, ""},
+		"crlfile":                    {"Ej", "crlfile", ArgFilename, false, ""},
+		"tlsuser":                    {"Ek", "tlsuser", ArgString, false, ""},
+		"tlspassword":                {"El", "tlspassword", ArgString, false, ""},
+		"tlsauthtype":                {"Em", "tlsauthtype", ArgString, false, ""},
+		"ssl-allow-beast":            {"En", "ssl-allow-beast", ArgBool, false, ""},
+		"ssl-auto-client-cert":       {"Eo", "ssl-auto-client-cert", ArgBool, false, ""},
+		"proxy-ssl-auto-client-cert": {"EO", "proxy-ssl-auto-client-cert", ArgBool, false, ""},
+		"pinnedpubkey":               {"Ep", "pinnedpubkey", ArgString, false, ""},
+		"proxy-pinnedpubkey":         {"EP", "proxy-pinnedpubkey", ArgString, false, ""},
+		"cert-status":                {"Eq", "cert-status", ArgBool, false, ""},
+		"doh-cert-status":            {"EQ", "doh-cert-status", ArgBool, false, ""},
+		"false-start":                {"Er", "false-start", ArgBool, false, ""},
+		"ssl-no-revoke":              {"Es", "ssl-no-revoke", ArgBool, false, ""},
+		"ssl-revoke-best-effort":     {"ES", "ssl-revoke-best-effort", ArgBool, false, ""},
+		"tcp-fastopen":               {"Et", "tcp-fastopen", ArgBool, false, ""},
+		"proxy-tlsuser":              {"Eu", "proxy-tlsuser", ArgString, false, ""},
+		"proxy-tlspassword":          {"Ev", "proxy-tlspassword", ArgString, false, ""},
+		"proxy-tlsauthtype":          {"Ew", "proxy-tlsauthtype", ArgString, false, ""},
+		"proxy-cert":                 {"Ex", "proxy-cert", ArgFilename, false, ""},
+		"proxy-cert-type":            {"Ey", "proxy-cert-type", ArgString, false, ""},
+		"proxy-key":                  {"Ez", "proxy-key", ArgFilename, false, ""},
+		"proxy-key-type":             {"E0", "proxy-key-type", ArgString, false, ""},
+		"proxy-pass":                 {"E1", "proxy-pass", ArgString, false, ""},
+		"proxy-ciphers":              {"E2", "proxy-ciphers", ArgString, false, ""},
+		"proxy-crlfile":              {"E3", "proxy-crlfile", ArgFilename, false, ""},
+		"proxy-ssl-allow-beast":      {"E4", "proxy-ssl-allow-beast", ArgBool, false, ""},
+		"login-options":              {"E5", "login-options", ArgString, false, ""},
+		"proxy-cacert":               {"E6", "proxy-cacert", ArgFilename, false, ""},
+		"proxy-capath":               {"E7", "proxy-capath", ArgFilename, false, ""},
+		"proxy-insecure":             {"E8", "proxy-insecure", ArgBool, false, ""},
+		"proxy-tlsv1":                {"E9", "proxy-tlsv1", ArgNone, false, ""},
+		"socks5-basic":               {"EA", "socks5-basic", ArgBool, false, ""},
+		"socks5-gssapi":              {"EB", "socks5-gssapi", ArgBool, false, ""},
+		"etag-save":                  {"EC", "etag-save", ArgFilename, false, ""},
+		"etag-compare":               {"ED", "etag-compare", ArgFilename, false, ""},
+		"curves":                     {"EE", "curves", ArgString, false, ""},
+		"fail":                       {"f", "fail", ArgBool, false, ""},
+		"fail-early":                 {"fa", "fail-early", ArgBool, false, ""},
+		"styled-output":              {"fb", "styled-output", ArgBool, false, ""},
+		"mail-rcpt-allowfails":       {"fc", "mail-rcpt-allowfails", ArgBool, false, ""},
+		"fail-with-body":             {"fd", "fail-with-body", ArgBool, false, ""},
+		"remove-on-error":            {"fe", "remove-on-error", ArgBool, false, ""},
+		"form":                       {"F", "form", ArgString, false, ""},
+		"form-string":                {"Fs", "form-string", ArgString, false, ""},
+		"globoff":                    {"g", "globoff", ArgBool, false, ""},
+		"get":                        {"G", "get", ArgBool, false, ""},
+		"request-target":             {"Ga", "request-target", ArgString, false, ""},
+		"help":                       {"h", "help", ArgBool, false, ""},
+		"header":                     {"H", "header", ArgString, false, ""},
+		"proxy-header":               {"Hp", "proxy-header", ArgString, false, ""},
+		"include":                    {"i", "include", ArgBool, false, ""},
+		"head":                       {"I", "head", ArgBool, false, ""},
+		"junk-session-cookies":       {"j", "junk-session-cookies", ArgBool, false, ""},
+		"remote-header-name":         {"J", "remote-header-name", ArgBool, false, ""},
+		"insecure":                   {"k", "insecure", ArgBool, false, ""},
+		"doh-insecure":               {"kd", "doh-insecure", ArgBool, false, ""},
+		"config":                     {"K", "config", ArgFilename, false, ""},
+		"list-only":                  {"l", "list-only", ArgBool, false, ""},
+		"location":                   {"L", "location", ArgBool, false, ""},
+		"location-trusted":           {"Lt", "location-trusted", ArgBool, false, ""},
+		"max-time":                   {"m", "max-time", ArgString, false, ""},
+		"manual":                     {"M", "manual", ArgBool, false, ""},
+		"netrc":                      {"n", "netrc", ArgBool, false, ""},
+		"netrc-optional":             {"no", "netrc-optional", ArgBool, false, ""},
+		"netrc-file":                 {"ne", "netrc-file", ArgFilename, false, ""},
+		"buffer":                     {"N", "buffer", ArgBool, false, ""},
+		"output":                     {"o", "output", ArgFilename, false, ""},
+		"remote-name":                {"O", "remote-name", ArgBool, false, ""},
+		"remote-name-all":            {"Oa", "remote-name-all", ArgBool, false, ""},
+		"output-dir":                 {"Ob", "output-dir", ArgString, false, ""},
+		"clobber":                    {"Oc", "clobber", ArgBool, false, ""},
+		"proxytunnel":                {"p", "proxytunnel", ArgBool, false, ""},
+		"ftp-port":                   {"P", "ftp-port", ArgString, false, ""},
+		"disable":                    {"q", "disable", ArgBool, false, ""},
+		"quote":                      {"Q", "quote", ArgString, false, ""},
+		"range":                      {"r", "range", ArgString, false, ""},
+		"remote-time":                {"R", "remote-time", ArgBool, false, ""},
+		"silent":                     {"s", "silent", ArgBool, false, ""},
+		"show-error":                 {"S", "show-error", ArgBool, false, ""},
+		"telnet-option":              {"desc", "telnet-option", ArgString, false, ""},
+		"upload-file":                {"T", "upload-file", ArgFilename, false, ""},
+		"user":                       {"u", "user", ArgString, false, ""},
+		"proxy-user":                 {"U", "proxy-user", ArgString, false, ""},
+		"verbose":                    {"v", "verbose", ArgBool, false, ""},
+		"version":                    {"V", "version", ArgBool, false, ""},
+		"write-out":                  {"w", "write-out", ArgString, false, ""},
+		"proxy":                      {"x", "proxy", ArgString, false, ""},
+		"preproxy":                   {"xa", "preproxy", ArgString, false, ""},
+		"request":                    {"X", "request", ArgString, false, ""},
+		"speed-limit":                {"Y", "speed-limit", ArgString, false, ""},
+		"speed-time":                 {"y", "speed-time", ArgString, false, ""},
+		"time-cond":                  {"z", "time-cond", ArgString, false, ""},
+		"parallel":                   {"Z", "parallel", ArgBool, false, ""},
+		"parallel-max":               {"Zb", "parallel-max", ArgString, false, ""},
+		"parallel-immediate":         {"Zc", "parallel-immediate", ArgBool, false, ""},
+		"progress-bar":               {"#", "progress-bar", ArgBool, false, ""},
+		"progress-meter":             {"#m", "progress-meter", ArgBool, false, ""},
+		"next":                       {":", "next", ArgNone, false, ""},
 	}
 )
 
-func getParameter(flag string, argv []string) ([]string, error) {
+func setParameter(flag string, argv []string) ([]string, error) {
 	if strings.HasPrefix(flag, "--") || !strings.HasPrefix(flag, "-") {
 		/* this should be a long name */
 		word := strings.TrimPrefix(flag, "--")
@@ -337,7 +331,7 @@ func getParameter(flag string, argv []string) ([]string, error) {
 			word = strings.TrimPrefix(word, "no-")
 			param, ok := longNameParameter.Get(word)
 			if ok {
-				param.valBool = false
+				param.boolValue = false
 			} else {
 				log.Println("[warning] unknown parameter: --" + word)
 			}
@@ -356,7 +350,7 @@ func getParameter(flag string, argv []string) ([]string, error) {
 			return argv, errors.New("invalid parameter: " + flag)
 		} else if len(flag) > 2 {
 			/* this is the actual extra parameter */
-			argv = append([]string{flag[2:]}, argv...)
+			argv = append([]string{"-" + flag[2:]}, argv...)
 		}
 		word = string(strings.TrimPrefix(flag, "-")[0])
 		var err error
@@ -370,21 +364,21 @@ func getParameter(flag string, argv []string) ([]string, error) {
 	}
 }
 
-func ParseArgs(argv []string) (Parameter, error) {
+func ParseArgs(argv []string) (CurlParameter, error) {
 	var err error
 	for len(argv) > 0 {
 		if strings.HasPrefix(argv[0], "-") {
 			if len(argv[0]) == 1 {
-				argv, err = getParameter(argv[0], nil)
+				argv, err = setParameter(argv[0], nil)
 			} else {
-				argv, err = getParameter(argv[0], argv[1:])
+				argv, err = setParameter(argv[0], argv[1:])
 			}
 			if err != nil {
 				return nil, err
 			}
 		} else {
 			/* Just add the URL please */
-			argv, err = getParameter("--url", argv)
+			argv, err = setParameter("--url", argv)
 			if err != nil {
 				return nil, err
 			}

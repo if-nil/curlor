@@ -1,26 +1,23 @@
-package main
+package curlcolor
 
 import (
-	"github.com/alecthomas/chroma/quick"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 func Run(argv []string) error {
-	config, argv, err := ResolveConfig(argv)
+	mgr, argv, err := ResolveManager(argv)
 	if err != nil {
 		return err
 	}
-	if !config.Parameters.MustGet("include").BoolVal() {
-		argv = append(argv, "-i")
+	if !mgr.CurlParameter.GetBool("include") {
+		argv = append(argv, "--include")
 	}
-	cmd := exec.Command("curl", argv...)
+	cmd := exec.Command(mgr.CurlCmd, argv...)
 	cmd.Stdin = os.Stdin
 
-	if config.Parameters.Protocol() != "https" && config.Parameters.Protocol() != "http" {
+	scheme := GetUrlScheme(mgr.CurlParameter.GetString("url"))
+	if scheme != "https" && scheme != "http" {
 		/* not http */
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -37,36 +34,19 @@ func Run(argv []string) error {
 	if err != nil {
 		return err
 	}
+	cmdErr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
 	if err = cmd.Start(); err != nil {
 		return err
 	}
-	b, err := io.ReadAll(cmdOut)
-	if err != nil {
+	if err = PrintError(mgr, cmdErr); err != nil {
 		return err
 	}
-	text := string(b)
-	section := strings.SplitN(strings.ReplaceAll(text, "\r\n", "\n"), "\n\n", 2)
-	if config.Parameters.MustGet("include").BoolVal() {
-		quick.Highlight(os.Stdout, section[0]+"\n\n", "http", "terminal16m", "monokai")
-	}
-	url, _ := config.Parameters.Get("url")
-	resp, err := ParseResponse(string(b), url.StringVal())
-	if err != nil {
+	if err = ParseAndPrintOutput(mgr, cmdOut); err != nil {
 		return err
 	}
-	for resp.StatusCode == http.StatusMovedPermanently || resp.StatusCode == http.StatusFound {
-		/* redirect */
-		section = strings.SplitN(strings.ReplaceAll(section[1], "\r\n", "\n"), "\n\n", 2)
-		if config.Parameters.MustGet("include").BoolVal() {
-			quick.Highlight(os.Stdout, section[0]+"\n\n", "http", "terminal16m", "monokai")
-		}
-		resp, err = ParseResponse(string(b), url.StringVal())
-		if err != nil {
-			return err
-		}
-	}
-	typ := getFormatType(resp.Header.Get("Content-Type"), "")
-	quick.Highlight(os.Stdout, section[1], typ, "terminal16m", "monokai")
 	if err := cmd.Wait(); err != nil {
 		return err
 	}

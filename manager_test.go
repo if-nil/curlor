@@ -1,4 +1,4 @@
-package main
+package curlcolor
 
 import (
 	"reflect"
@@ -39,7 +39,7 @@ func TestResolveConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ResolveConfig(tt.args.argv)
+			ResolveManager(tt.args.argv)
 		})
 	}
 }
@@ -59,13 +59,13 @@ func Test_getParameter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getParameter(tt.args.flag, tt.args.argv)
+			got, err := setParameter(tt.args.flag, tt.args.argv)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getParameter() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("setParameter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getParameter() got = %v, want %v", got, tt.want)
+				t.Errorf("setParameter() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -75,7 +75,7 @@ func Test_param_SetVal(t *testing.T) {
 	type fields struct {
 		letter    string
 		lname     string
-		desc      ParamType
+		desc      ArgType
 		valBool   bool
 		valString string
 	}
@@ -93,12 +93,12 @@ func Test_param_SetVal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Param{
-				letter:    tt.fields.letter,
-				lname:     tt.fields.lname,
-				desc:      tt.fields.desc,
-				valBool:   tt.fields.valBool,
-				valString: tt.fields.valString,
+			p := &CurlParam{
+				letter:      tt.fields.letter,
+				lname:       tt.fields.lname,
+				desc:        tt.fields.desc,
+				boolValue:   tt.fields.valBool,
+				stringValue: tt.fields.valString,
 			}
 			got, err := p.SetVal(tt.args.argv)
 			if (err != nil) != tt.wantErr {
