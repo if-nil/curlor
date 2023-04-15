@@ -38,9 +38,20 @@ func GetUrlScheme(url string) string {
 	return u.Scheme
 }
 
-func PrintError(mgr *Manager, errReader io.Reader) error {
-	_, err := io.Copy(mgr.Printer.ErrWriter, errReader)
-	return err
+func ParseAndPrintError(mgr *Manager, errReader io.Reader) error {
+	bf := bufio.NewReader(errReader)
+	ch := make(chan string)
+	go func() {
+		for {
+			line, err := bf.ReadString('\n')
+			if err != nil {
+				close(ch)
+				return
+			}
+			ch <- line
+		}
+	}()
+	return mgr.Printer.VerboseChannelFormat(ch)
 }
 
 func ParseAndPrintOutput(mgr *Manager, output io.Reader) error {
@@ -57,8 +68,8 @@ func ParseAndPrintOutput(mgr *Manager, output io.Reader) error {
 		if err != nil {
 			return err
 		}
-		if mgr.CurlParameter.GetBool("include") {
-			mgr.Printer.Print(header, "http")
+		if mgr.CurlParameter.GetBool("include") || mgr.CurlParameter.GetBool("head") {
+			mgr.Printer.Highlight(header, "http")
 		}
 		resp, err = ParseResponse(header, mgr.CurlParameter.GetString("url"))
 		if err != nil {
@@ -70,7 +81,7 @@ func ParseAndPrintOutput(mgr *Manager, output io.Reader) error {
 		return err
 	}
 	typ := GetFormatType(resp.Header.Get("Content-Type"), resp.Request.URL.Path)
-	mgr.Printer.Print(body, typ)
+	mgr.Printer.Highlight(body, typ)
 	return nil
 }
 

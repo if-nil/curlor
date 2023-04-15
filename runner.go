@@ -17,8 +17,8 @@ func Run(argv []string) error {
 	cmd.Stdin = os.Stdin
 
 	scheme := GetUrlScheme(mgr.CurlParameter.GetString("url"))
-	if scheme != "https" && scheme != "http" {
-		/* not http */
+	if scheme != "https" && scheme != "http" || mgr.CurlParameter.GetString("output") != "" {
+		/* not http or output to file */
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
@@ -41,7 +41,7 @@ func Run(argv []string) error {
 	if err = cmd.Start(); err != nil {
 		return err
 	}
-	if err = PrintError(mgr, cmdErr); err != nil {
+	if err = ParseAndPrintError(mgr, cmdErr); err != nil {
 		return err
 	}
 	if err = ParseAndPrintOutput(mgr, cmdOut); err != nil {

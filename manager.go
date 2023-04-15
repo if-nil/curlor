@@ -30,8 +30,8 @@ func TraversalSearchBool(key string, argv []string, default2 bool) (bool, []stri
 func TraversalSearchString(key string, argv []string, default2 string) (string, []string, error) {
 	for i, v := range argv {
 		if v == key {
-			if i+1 < len(argv) {
-				return "", nil, fmt.Errorf("invalid parameter")
+			if i+1 >= len(argv) {
+				return "", nil, fmt.Errorf("invalid parameter: %s", key)
 			}
 			return argv[i+1], append(argv[:i], argv[i+2:]...), nil
 		}
@@ -41,9 +41,21 @@ func TraversalSearchString(key string, argv []string, default2 string) (string, 
 
 func ResolveManager(args []string) (*Manager, []string, error) {
 	theme, args, err := TraversalSearchString("---theme", args, defaultTheme)
+	if err != nil {
+		return nil, nil, err
+	}
 	curlCmd, args, err := TraversalSearchString("---cmd", args, defaultCmd)
+	if err != nil {
+		return nil, nil, err
+	}
 	version, args, err := TraversalSearchBool("---version", args, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	debug, args, err := TraversalSearchBool("---debug", args, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	outWriter := os.Stdout
 	errWriter := os.Stderr
 	if err != nil {

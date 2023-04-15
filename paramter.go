@@ -2,7 +2,7 @@ package curlcolor
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 )
 
@@ -333,13 +333,13 @@ func setParameter(flag string, argv []string) ([]string, error) {
 			if ok {
 				param.boolValue = false
 			} else {
-				log.Println("[warning] unknown parameter: --" + word)
+				fmt.Printf("\033[31m%s\033[0m\n", "curlcolor: option --"+word+": is unknown")
 			}
 			return argv, nil
 		}
 		param, ok := longNameParameter.Get(word)
 		if !ok {
-			log.Println("[warning] unknown parameter: --" + word)
+			fmt.Printf("\033[31m%s\033[0m\n", "curlcolor: option --"+word+": is unknown")
 			return argv, nil
 		}
 		return param.SetVal(argv)
@@ -347,7 +347,7 @@ func setParameter(flag string, argv []string) ([]string, error) {
 		/* prefixed with one dash */
 		var word string
 		if len(flag) < 2 {
-			return argv, errors.New("invalid parameter: " + flag)
+			return argv, fmt.Errorf("invalid parameter: %s", flag)
 		} else if len(flag) > 2 {
 			/* this is the actual extra parameter */
 			argv = append([]string{"-" + flag[2:]}, argv...)
