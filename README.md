@@ -16,6 +16,10 @@ Thanks to the power of [chroma](https://github.com/alecthomas/chroma), `curlor` 
 
 ## 🎊 Preview
 
+![img.png](doc/1.png)
+
+![img.png](doc/2.png)
+
 ## 📌 Roadmap
 
 - [ ] support package manager
