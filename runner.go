@@ -5,10 +5,21 @@ import (
 	"os/exec"
 )
 
-func Run(argv []string) error {
+// TODO: add options and more help info
+const help = "\033[34mcurlor\033[0m is a wrapper for curl, it will print the response body with color."
+
+func Run(argv []string, version string) error {
 	mgr, argv, err := ResolveManager(argv)
 	if err != nil {
 		return err
+	}
+	if mgr.Version {
+		mgr.Printer.Highlight([]byte("curlor version: "+version), "yaml")
+		return nil
+	}
+	if mgr.Help {
+		mgr.Printer.Print([]byte(help))
+		return nil
 	}
 	if !mgr.CurlParameter.GetBool("include") {
 		argv = append(argv, "--include")
@@ -17,7 +28,8 @@ func Run(argv []string) error {
 	cmd.Stdin = os.Stdin
 
 	scheme := GetUrlScheme(mgr.CurlParameter.GetString("url"))
-	if scheme != "https" && scheme != "http" || mgr.CurlParameter.GetString("output") != "" {
+	if scheme != "https" && scheme != "http" || mgr.CurlParameter.GetString("output") != "" ||
+		mgr.CurlParameter.GetBool("version") || mgr.CurlParameter.GetString("help") != "" {
 		/* not http or output to file */
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

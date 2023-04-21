@@ -16,6 +16,7 @@ type Manager struct {
 	Debug         bool
 	CurlCmd       string
 	Version       bool
+	Help          bool
 }
 
 func TraversalSearchBool(key string, argv []string, default2 bool) (bool, []string, error) {
@@ -56,6 +57,10 @@ func ResolveManager(args []string) (*Manager, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	help, args, err := TraversalSearchBool("---help", args, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	outWriter := os.Stdout
 	errWriter := os.Stderr
 	if err != nil {
@@ -77,5 +82,6 @@ func ResolveManager(args []string) (*Manager, []string, error) {
 		Version:       version,
 		Debug:         debug,
 		Printer:       printer,
+		Help:          help,
 	}, args, nil
 }

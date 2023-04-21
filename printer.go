@@ -14,6 +14,12 @@ type ColorPrinter struct {
 	Theme     string
 }
 
+func (c *ColorPrinter) Print(text []byte) {
+	if _, err := c.OutWriter.Write(text); err != nil {
+		return
+	}
+}
+
 func (c *ColorPrinter) Highlight(text []byte, lexer string) {
 	if err := quick.Highlight(c.OutWriter, string(text), lexer, c.Formatter, c.Theme); err != nil {
 		return
