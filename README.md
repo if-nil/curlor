@@ -3,7 +3,7 @@
 
 `curlor` is a tool to color curl's output. It will automatically determine the highlighting style of the response body. 
 
-Thanks to the power of [chroma](https://github.com/alecthomas/chroma), `curlor` curlor can better support more response formats and more highlight themes. 
+Thanks to the power of [chroma](https://github.com/alecthomas/chroma), `curlor` can better support more response formats and more highlight themes. 
 
 > If you find that some responses are supposed to be colored but aren't, please let me know via issue.
 
@@ -16,9 +16,11 @@ Thanks to the power of [chroma](https://github.com/alecthomas/chroma), `curlor` 
 
 ## 🎊 Preview
 
-![img.png](doc/1.png)
+![img.png](doc/usual.png)
 
-![img.png](doc/2.png)
+![img.png](doc/verbose.png)
+
+![img.png](doc/other_theme.png)
 
 ## 📌 Roadmap
 
