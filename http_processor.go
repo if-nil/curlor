@@ -63,10 +63,13 @@ func ParseAndPrintOutput(mgr *Manager, output io.Reader) error {
 	)
 	for resp == nil ||
 		(resp.StatusCode == http.StatusMovedPermanently || resp.StatusCode == http.StatusFound && mgr.CurlParameter.GetBool("location")) {
-		/* may be 'redirect' */
+
 		header, err = SplitHeader(bf)
 		if err != nil {
 			return err
+		}
+		if len(header) == 0 {
+			break
 		}
 		if mgr.CurlParameter.GetBool("include") || mgr.CurlParameter.GetBool("head") {
 			mgr.Printer.Highlight(header, "http")
@@ -79,6 +82,9 @@ func ParseAndPrintOutput(mgr *Manager, output io.Reader) error {
 	body, err := io.ReadAll(bf)
 	if err != nil {
 		return err
+	}
+	if len(body) == 0 {
+		return nil
 	}
 	typ := GetFormatType(resp.Header.Get("Content-Type"), resp.Request.URL.Path)
 	mgr.Printer.Highlight(body, typ)
