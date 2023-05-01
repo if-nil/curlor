@@ -25,21 +25,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         
-      - name: Set binary name
-        run: |
-          if [[ "$GOOS" == "windows" ]]; then
-            BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH.exe
-          else
-            BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH
-          fi
-          export BINARY=$(echo "$BINARY" | sed 's/\//-/g')
+#      - name: Set binary name
+#        run: |
+#          if [[ "$GOOS" == "windows" ]]; then
+#            BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH.exe
+#          else
+#            BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH
+#          fi
+#          export BINARY=$(echo "$BINARY" | sed 's/\//-/g')
 
       - name: Show workflow information
         run: |
-          echo "GOOS: $GOOS, GOARCH: $GOARCH BINARY: $BINARY"
+          echo "GOOS: $GOOS, GOARCH: $GOARCH"
           echo "BUILD_TIME=$(date +%FT%T%z)" >> $GITHUB_ENV
 
       - name: Build binaries
         run: |
+          $BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH
+          $BINARY=$(echo "$BINARY" | sed 's/\//-/g')
+          if [[ "$GOOS" == "windows" ]]; then
+            $BINARY=$BINARY.exe
+          fi
           GOOS=$GOOS GOARCH=$GOARCH go build -o dist/$BINARY .
           ls -l dist
