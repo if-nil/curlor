@@ -41,10 +41,10 @@ jobs:
 
       - name: Build binaries
         run: |
-          $BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH
-          $BINARY=$(echo "$BINARY" | sed 's/\//-/g')
+          BINARY=curlor-${{ github.ref_name }}-$GOOS-$GOARCH
+          BINARY=$(echo "$BINARY" | sed 's/\//-/g')
           if [[ "$GOOS" == "windows" ]]; then
-            $BINARY=$BINARY.exe
+            BINARY=$BINARY.exe
           fi
           GOOS=$GOOS GOARCH=$GOARCH go build -o dist/$BINARY .
           ls -l dist
