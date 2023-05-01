@@ -29,9 +29,9 @@ jobs:
       - name: Set binary name
         run: |
           if [[ "$GOOS" == "windows" ]]; then
-            export BINARY=curlor-${{ github.ref }}-${GOOS}-${GOARCH}.exe
+            export BINARY=curlor-${{ github.ref#refs/heads/ }}-${GOOS}-${GOARCH}.exe
           else
-            export BINARY=curlor-${{ github.ref }}-${GOOS}-${GOARCH}  
+            export BINARY=curlor-${{ github.ref#refs/heads/ }}-${GOOS}-${GOARCH}  
           fi
 
       - name: Show workflow information
