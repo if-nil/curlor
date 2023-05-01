@@ -25,6 +25,8 @@ Thanks to the power of [chroma](https://github.com/alecthomas/chroma), `curlor` 
 ## 📌 Roadmap
 
 - [ ] support package manager
+- [ ] add more formats
+- [ ] add help info for usage
 
 ## 🧰 Install
 
