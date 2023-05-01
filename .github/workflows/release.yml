@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,5 +39,5 @@ jobs:
 
       - name: Build binaries
         run: |
-          GOOS=$GOOS $GOARCH=amd64 go build -o dist/BINARY .
+          GOOS=$GOOS GOARCH=$GOARCH go build -o dist/BINARY .
           ls -l dist
