@@ -20,7 +20,7 @@ jobs:
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
-      BINARY: curlor-${{ github.ref }}-${GOOS}-${GOARCH}
+      BINARY: curlor-${{ github.ref }}-${{ GOOS }}-${{ GOARCH }}
 
     steps:
       - name: Checkout
