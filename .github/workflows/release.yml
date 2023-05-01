@@ -20,7 +20,7 @@ jobs:
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
-      BINARY: curlor-${{ github.ref }}-${{ GOOS }}-${{ GOARCH }}
+      BINARY: curlor-${{ github.ref }}-${GOOS}-${GOARCH}
 
     steps:
       - name: Checkout
@@ -29,7 +29,9 @@ jobs:
       - name: Set binary name
         run: |
           if [[ "$GOOS" == "windows" ]]; then
-            export BINARY=${BINARY}.exe
+            export BINARY=curlor-${{ github.ref }}-${GOOS}-${GOARCH}.exe
+          else
+            export BINARY=curlor-${{ github.ref }}-${GOOS}-${GOARCH}  
           fi
 
       - name: Show workflow information
