@@ -34,7 +34,7 @@ jobs:
 
       - name: Show workflow information
         run: |
-          echo "GOOS: $GOOS, GOARCH: $GOARCH BINARY: $BINARY
+          echo "GOOS: $GOOS, GOARCH: $GOARCH BINARY: $BINARY"
           echo "BUILD_TIME=$(date +%FT%T%z)" >> $GITHUB_ENV
 
       - name: Build binaries
