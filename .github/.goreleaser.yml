@@ -50,3 +50,4 @@ changelog:
       - '^docs:'
       - '^test:'
       - 'update workflows'
+      - '^Merge pull'
