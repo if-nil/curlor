@@ -12,6 +12,21 @@ builds:
       - windows
       - darwin
       - linux
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+      - ppc64le
+    ignore:
+      - goos: windows
+        goarch: ppc64le
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: ppc64le
 
 archives:
   - builds:
@@ -20,7 +35,6 @@ archives:
       darwin: Darwin
       linux: Linux
       windows: Windows
-      amd64: x86_64
     format: tar.gz
     format_overrides:
       - goos: windows
